@@ -5,7 +5,7 @@ export const drawRect = (detections, ctx) =>{
       const text = prediction['class']; 
   
       const color = Math.floor(Math.random()*16777215).toString(16);
-      console.log(text);
+
       if (text === 'cell phone') {
         ctx.strokeStyle = '#' + color
         ctx.font = '18px Arial';
