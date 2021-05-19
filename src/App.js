@@ -7,12 +7,15 @@ import {
   drawConnectors,
   drawLandmarks,
 } from '@mediapipe/drawing_utils/drawing_utils';
+import * as tfjs from '@tensorflow/tfjs';
+import * as cocossd from "@tensorflow-models/coco-ssd";
 
 function App() {
   const canvasElementRef = createRef()
   const videoElementRef = createRef()
 
   useEffect(async () => {
+    const coco =await cocossd.load();
     const hand = new Hands({
       locateFile: (file) => {
         return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
@@ -26,6 +29,7 @@ function App() {
     const camera = new Camera(videoElementRef.current, {
       onFrame: async () => {
         await hand.send({ image: videoElementRef.current })
+        await smartPhoneDetection(coco);
       },
       width: 1280,
       height: 720,
@@ -34,6 +38,17 @@ function App() {
     hand.onResults(onResults)
     camera.start()
   }, [])
+
+  async function smartPhoneDetection (network) {
+    const detections = await network.detect(videoElementRef.current);
+    detections.forEach(prediction => {
+      const text = prediction['class']; 
+
+      if (text === 'cell phone') {
+        console.log(text);
+      }
+    });
+  }
 
   function onResults(results) {
     const canvasCtx = canvasElementRef.current.getContext('2d')
