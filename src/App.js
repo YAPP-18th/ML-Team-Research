@@ -3,10 +3,10 @@ import React, { createRef, useEffect } from 'react';
 import { Hands } from '@mediapipe/hands/hands';
 import { HAND_CONNECTIONS } from '@mediapipe/hands';
 import { Camera } from '@mediapipe/camera_utils/camera_utils';
-import {
-  drawConnectors,
-  drawLandmarks,
-} from '@mediapipe/drawing_utils/drawing_utils';
+// import {
+//   drawConnectors,
+//   drawLandmarks,
+// } from '@mediapipe/drawing_utils/drawing_utils';
 import * as tfjs from '@tensorflow/tfjs';
 import * as cocossd from "@tensorflow-models/coco-ssd";
 
@@ -35,7 +35,7 @@ function App() {
       height: 720,
     })
     
-    hand.onResults(onResults)
+    hand.onResults(handDetection)
     camera.start()
   }, [])
 
@@ -50,7 +50,7 @@ function App() {
     });
   }
 
-  function onResults(results) {
+  function handDetection(results) {
     const canvasCtx = canvasElementRef.current.getContext('2d')
     const canvasElement = canvasElementRef.current
 
@@ -65,13 +65,13 @@ function App() {
     )
     canvasCtx.lineWidth = 1
 
-    if (results.multiHandLandmarks) {
-      for (const landmarks of results.multiHandLandmarks) {
-        drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS,
-          {color: '#00FF00', lineWidth: 5});
-          drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 1});
-        }
-      }
+    // if (results.multiHandLandmarks) {
+    //   for (const landmarks of results.multiHandLandmarks) {
+    //     drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS,
+    //       {color: '#00FF00', lineWidth: 5});
+    //       drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 1});
+    //     }
+    //   }
 
     if (results.multiHandedness !== undefined) {
       if (results.multiHandedness.length === 2) {
