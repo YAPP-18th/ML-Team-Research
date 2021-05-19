@@ -11,42 +11,6 @@ function App() {
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
 
-  const runDrowsy = async () => {
-    var targetPixel = [];
-    
-    setInterval(() => {
-      if (
-        typeof webcamRef.current !== "undefined" &&
-        webcamRef.current !== null &&
-        webcamRef.current.video.readyState === 4
-      ) {
-        const video = webcamRef.current.video;
-        const videoWidth = webcamRef.current.video.videoWidth;
-        const videoHeight = webcamRef.current.video.videoHeight;
-  
-        webcamRef.current.video.width = videoWidth;
-        webcamRef.current.video.height = videoHeight;
-  
-        const currentPixel = tfjs.browser.fromPixels(video);
-        var result = 0;
-        if (targetPixel.length === 0) {
-          console.log('length is zero');
-          targetPixel = currentPixel.clone();
-        }
-
-        result = targetPixel.sub(currentPixel).sum().abs();
-        console.log(result.toString());
-        if (result.toString() <= tfjs.scalar(200000).toString()) {
-          console.log('drowsy!!');
-        } else {
-          console.log('study!!');
-        }
-
-        targetPixel = currentPixel.clone();
-      }
-    }, 1000);
-  }
-
   const runHand = async () => {
     const hands = await handTrack.load();
     
@@ -113,10 +77,9 @@ function App() {
       drawRect(obj, ctx);
     }
   };
-  
- runSmartPhone();
- runHand();
- runDrowsy();
+
+  runSmartPhone();
+  runHand();
 
   return (
     <div className="App">
