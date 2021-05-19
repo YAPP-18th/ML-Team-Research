@@ -1,118 +1,102 @@
-import React, {useRef} from "react";
-import './App.css';
-import * as tfjs from '@tensorflow/tfjs';
-import * as cocossd from "@tensorflow-models/coco-ssd";
-import * as handTrack from 'handtrackjs';
+import React, { createRef, useEffect } from 'react';
 
-import Webcam from "react-webcam";
-import { drawRect } from "./utilities";
+import { Hands } from '@mediapipe/hands/hands';
+import { HAND_CONNECTIONS } from '@mediapipe/hands';
+import { Camera } from '@mediapipe/camera_utils/camera_utils';
+import {
+  drawConnectors,
+  drawLandmarks,
+} from '@mediapipe/drawing_utils/drawing_utils';
 
 function App() {
-  const webcamRef = useRef(null);
-  const canvasRef = useRef(null);
+  const canvasElementRef = createRef()
+  const videoElementRef = createRef()
 
-  const runHand = async () => {
-    const hands = await handTrack.load();
+  useEffect(async () => {
+    const hand = new Hands({
+      locateFile: (file) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+      },
+    })
+    hand.setOptions({
+      maxNumHands: 2,
+      minDetectionConfidence: 0.8,
+      minTrackingConfidence: 0.8
+    })
+    const camera = new Camera(videoElementRef.current, {
+      onFrame: async () => {
+        await hand.send({ image: videoElementRef.current })
+      },
+      width: 1280,
+      height: 720,
+    })
     
-    setInterval(() => {
-      detectHands(hands);
-    }, 100);
-  }
+    hand.onResults(onResults)
+    camera.start()
+  }, [])
 
-  const detectHands = async (hands) => {
-    if (
-      typeof webcamRef.current !== "undefined" &&
-      webcamRef.current !== null &&
-      webcamRef.current.video.readyState === 4
-    ) {
+  function onResults(results) {
+    const canvasCtx = canvasElementRef.current.getContext('2d')
+    const canvasElement = canvasElementRef.current
 
-      const video = webcamRef.current.video;
-      const videoWidth = webcamRef.current.video.videoWidth;
-      const videoHeight = webcamRef.current.video.videoHeight;
+    canvasCtx.save()
+    canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height)
+    canvasCtx.drawImage(
+      results.image,
+      0,
+      0,
+      canvasElement.width,
+      canvasElement.height
+    )
+    canvasCtx.lineWidth = 1
 
-      webcamRef.current.video.width = videoWidth;
-      webcamRef.current.video.height = videoHeight;
-      
-      var result = []; 
-      hands.detect(video).then(predictions => {
-        result = predictions;
-
-        if (result.length === 2) {
-          console.log('Two hands');
-        } else if (result.length === 1) {
-          console.log('One hand');
+    if (results.multiHandLandmarks) {
+      for (const landmarks of results.multiHandLandmarks) {
+        drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS,
+          {color: '#00FF00', lineWidth: 5});
+          drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 1});
         }
-      });
+      }
+
+    if (results.multiHandedness !== undefined) {
+      if (results.multiHandedness.length === 2) {
+        console.log('two hands');
+      } else if(results.multiHandedness.length === 1) {
+        console.log('one hand');
+      } 
+    } else{
+      console.log('No hand');
     }
+    
+    canvasCtx.restore()
   }
-
-  const runSmartPhone = async () => {
-    const net = await cocossd.load();
-
-    setInterval(() => {
-      detectSmartPhone(net);
-    }, 100);
-  };
- 
-  const detectSmartPhone = async (net) => {
-    if (
-      typeof webcamRef.current !== "undefined" &&
-      webcamRef.current !== null &&
-      webcamRef.current.video.readyState === 4
-    ) {
-
-      const video = webcamRef.current.video;
-      const videoWidth = webcamRef.current.video.videoWidth;
-      const videoHeight = webcamRef.current.video.videoHeight;
-
-
-      webcamRef.current.video.width = videoWidth;
-      webcamRef.current.video.height = videoHeight;
-
-      canvasRef.current.width = videoWidth;
-      canvasRef.current.height = videoHeight;
-
-      const obj = await net.detect(video);
-      const ctx = canvasRef.current.getContext("2d");
-      drawRect(obj, ctx);
-    }
-  };
-
-  runSmartPhone();
-  runHand();
 
   return (
     <div className="App">
       <header className="App-header">
-        <Webcam ref={webcamRef} style={
-          {
-            position:'absolute',
-            marginLeft:'auto',
-            marginRight:'auto',
-            left:0,
-            right:0,
-            textAlign:'center',
-            zIndex:9,
-            width:640,
-            height:480,
-          }
-        } />
-        <canvas ref={canvasRef} style= {
-          {
-            position:'absolute',
-            marginLeft:'auto',
-            marginRight:'auto',
-            left:0,
-            right:0,
-            textAlign:'center',
-            zIndex:9,
-            width:640,
-            height:480,
-          }
-        }/>
+        <video
+          style={{
+            position: 'relative',
+            top: '0',
+            left: '0',
+            right: '0',
+            bottom: '0',
+          }}
+          ref={videoElementRef}
+        ></video>
+        <canvas
+          ref={canvasElementRef}
+          style={{
+            position: 'absolute',
+            left: '0',
+            top: '0',
+            width: '1280px',
+            height: '720px',
+          }}
+        ></canvas>
       </header>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App

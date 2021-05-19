@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@mediapipe/camera_utils": "^0.3.1620247984",
+    "@mediapipe/drawing_utils": "^0.3.1620248257",
+    "@mediapipe/hands": "^0.3.1620248595",
     "@tensorflow-models/coco-ssd": "^2.2.1",
     "@tensorflow/tfjs": "^3.4.0",
     "@testing-library/jest-dom": "^5.11.10",
