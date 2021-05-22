@@ -1,19 +1,25 @@
 import React, { createRef, useEffect } from 'react';
 
 import { Hands } from '@mediapipe/hands/hands';
-import { HAND_CONNECTIONS } from '@mediapipe/hands';
 import { Camera } from '@mediapipe/camera_utils/camera_utils';
-// import {
-//   drawConnectors,
-//   drawLandmarks,
-// } from '@mediapipe/drawing_utils/drawing_utils';
 import * as tfjs from '@tensorflow/tfjs';
 import * as cocossd from "@tensorflow-models/coco-ssd";
+
+var LeftTargetLandmark = [];
+var RightTargetLandmark = [];
+var currentUserAction = 'study';
+var userActions = {
+  'userAction' : {
+    'study' : {'time': 0, 'count' : 0},
+    'drowsiness' : {'time': 0, 'count' : 0},
+    'smartphone' : {'time': 0, 'count' : 0},
+    'leave' : {'time': 0, 'count' : 0},}
+  };
 
 function App() {
   const canvasElementRef = createRef()
   const videoElementRef = createRef()
-
+  
   useEffect(async () => {
     const coco =await cocossd.load();
     const hand = new Hands({
@@ -34,8 +40,8 @@ function App() {
       width: 1280,
       height: 720,
     })
-    
-    hand.onResults(handDetection)
+   
+    hand.onResults(handDetection);
     camera.start()
   }, [])
 
@@ -45,7 +51,8 @@ function App() {
       const text = prediction['class']; 
 
       if (text === 'cell phone') {
-        console.log(text);
+        currentUserAction = 'smartphone';
+        userActions['userAction'][currentUserAction]['count'] += 1;
       }
     });
   }
@@ -65,25 +72,90 @@ function App() {
     )
     canvasCtx.lineWidth = 1
 
-    // if (results.multiHandLandmarks) {
-    //   for (const landmarks of results.multiHandLandmarks) {
-    //     drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS,
-    //       {color: '#00FF00', lineWidth: 5});
-    //       drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 1});
-    //     }
-    //   }
-
     if (results.multiHandedness !== undefined) {
-      if (results.multiHandedness.length === 2) {
-        console.log('two hands');
+      drowsinessDetection(results);
+
+      if (results.multiHandedness.length === 2 && !(currentUserAction === 'smartphone' || currentUserAction === 'drowsiness')) {
+        currentUserAction = 'study';
+        userActions['userAction'][currentUserAction]['count'] += 1;
       } else if(results.multiHandedness.length === 1) {
         console.log('one hand');
       } 
     } else{
-      console.log('No hand');
+      currentUserAction = 'leave';
+      userActions['userAction'][currentUserAction]['count'] += 1;
     }
     
     canvasCtx.restore()
+  }
+
+  function drowsinessDetection(handInfo) {
+    var leftFingerDetection = true;
+    var rightFingerDetection = true;
+    var bothFingerDetection = true;
+    var isRightFingerXMove;
+    var isRightFingerYMove;
+    var isLeftFingerXMove;
+    var isLeftFingerYMove;
+
+    if (handInfo.multiHandLandmarks.length === 2) {
+      if (RightTargetLandmark !== []) {
+        if (RightTargetLandmark[4] !== undefined) {
+          isRightFingerXMove = Math.abs((handInfo.multiHandLandmarks[0][4]['x']-RightTargetLandmark[4]['x']).toFixed(2)) > 0;
+          isRightFingerYMove = Math.abs((handInfo.multiHandLandmarks[0][4]['y']-RightTargetLandmark[4]['y']).toFixed(2)) > 0;
+          rightFingerDetection = isRightFingerXMove && isRightFingerYMove;
+        }
+      }
+      if (LeftTargetLandmark !== []) {
+        if (LeftTargetLandmark[4] !== undefined) {
+          isLeftFingerXMove = Math.abs((handInfo.multiHandLandmarks[1][4]['x']-LeftTargetLandmark[4]['x']).toFixed(2)) > 0;
+          isLeftFingerYMove = Math.abs((handInfo.multiHandLandmarks[1][4]['y']-LeftTargetLandmark[4]['y']).toFixed(2)) > 0;
+          leftFingerDetection = isLeftFingerXMove && isLeftFingerYMove;
+        }
+      }
+
+      bothFingerDetection = rightFingerDetection && leftFingerDetection;
+      if (!bothFingerDetection) {
+        currentUserAction = 'drowsiness';
+        userActions['userAction'][currentUserAction]['count'] += 1;
+      }
+
+      RightTargetLandmark = handInfo.multiHandLandmarks[0];
+      LeftTargetLandmark = handInfo.multiHandLandmarks[1];
+
+    } else {
+      if (handInfo.multiHandedness[0]['label'] === 'Left') {
+        if (LeftTargetLandmark !== []) {
+          if (LeftTargetLandmark[4] !== undefined) {
+            isLeftFingerXMove = Math.abs((handInfo.multiHandLandmarks[0][4]['x']-LeftTargetLandmark[4]['x']).toFixed(2)) > 0;
+            isLeftFingerYMove = Math.abs((handInfo.multiHandLandmarks[0][4]['y']-LeftTargetLandmark[4]['y']).toFixed(2)) > 0;
+            leftFingerDetection = isLeftFingerXMove || isLeftFingerYMove;
+          }
+        }
+        if (!leftFingerDetection) {
+          currentUserAction = 'drowsiness';
+          userActions['userAction'][currentUserAction]['count'] += 1;
+        }
+        LeftTargetLandmark = handInfo.multiHandLandmarks[0];
+
+      } else {
+        if (RightTargetLandmark !== []) {
+          if (RightTargetLandmark[4] !== undefined) {
+            isRightFingerXMove = Math.abs((handInfo.multiHandLandmarks[0][4]['x']-RightTargetLandmark[4]['x']).toFixed(2)) > 0;
+            isRightFingerYMove = Math.abs((handInfo.multiHandLandmarks[0][4]['y']-RightTargetLandmark[4]['y']).toFixed(2)) > 0;
+            rightFingerDetection = isRightFingerXMove || isRightFingerYMove;
+
+          }
+        }
+
+        if (!rightFingerDetection) {
+          currentUserAction = 'drowsiness';
+          userActions['userAction'][currentUserAction]['count'] += 1;
+        }
+        
+        RightTargetLandmark = handInfo.multiHandLandmarks[0];
+      }
+    }
   }
 
   return (
