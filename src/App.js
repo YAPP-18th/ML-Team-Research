@@ -9,7 +9,7 @@ import {smartPhoneDetection, handDetection} from './userActionDetection';
 function App() {
   const canvasElementRef = createRef()
   const videoElementRef = createRef()
-  
+
   useEffect(async () => {
     const coco =await cocossd.load();
     const hand = new Hands({
@@ -19,8 +19,8 @@ function App() {
     })
     hand.setOptions({
       maxNumHands: 2,
-      minDetectionConfidence: 0.8,
-      minTrackingConfidence: 0.8
+      minDetectionConfidence: 0.85,
+      minTrackingConfidence: 0.85
     })
     const camera = new Camera(videoElementRef.current, {
       onFrame: async () => {

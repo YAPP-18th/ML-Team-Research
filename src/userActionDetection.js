@@ -1,9 +1,6 @@
-var LeftTargetLandmark = [];
-var RightTargetLandmark = [];
 var previousUserAction = 'study';
 var currentUserAction = 'study';
-var isHandExist = true;
-var isUsingSmartPhone = false;
+var startTime = Date.now();
 var userActions = {
   'userAction' : {
     'study' : {'time': 0, 'count' : 0},
@@ -11,6 +8,12 @@ var userActions = {
     'smartPhone' : {'time': 0, 'count' : 0},
     'leave' : {'time': 0, 'count' : 0},}
   };
+
+var isHandExist = true;
+var isUsingSmartPhone = false;
+
+var LeftTargetLandmark = [];
+var RightTargetLandmark = [];
 
 async function smartPhoneDetection (network, image) {
     const detections = await network.detect(image);
@@ -22,6 +25,7 @@ async function smartPhoneDetection (network, image) {
         isUsingSmartPhone = true;
         currentUserAction = 'smartPhone';
         if (previousUserAction !== currentUserAction) {
+          userActionTimer(startTime, currentUserAction);
           userActions['userAction'][currentUserAction]['count'] += 1;
           previousUserAction = currentUserAction;
         }
@@ -39,11 +43,11 @@ async function smartPhoneDetection (network, image) {
       currentUserAction = 'leave';
       isHandExist = false;
       if (previousUserAction !== currentUserAction) {
+        userActionTimer(startTime, currentUserAction);
         userActions['userAction'][currentUserAction]['count'] += 1;
         previousUserAction = currentUserAction;
       }
     }
-    console.log('hand!');
   }
 
   function drowsinessDetection(handInfo) {
@@ -75,12 +79,14 @@ async function smartPhoneDetection (network, image) {
       if (bothFingerDetection) {
         currentUserAction = 'study';
         if (previousUserAction !== currentUserAction) {
+            userActionTimer(startTime, currentUserAction);
             userActions['userAction'][currentUserAction]['count'] += 1;
             previousUserAction = currentUserAction;
         }
       } else {
         currentUserAction = 'drowsiness';
         if (previousUserAction !== currentUserAction) {
+            userActionTimer(startTime, currentUserAction);
             userActions['userAction'][currentUserAction]['count'] += 1;
             previousUserAction = currentUserAction;
         }
@@ -102,6 +108,7 @@ async function smartPhoneDetection (network, image) {
         if (!leftFingerDetection) {
           currentUserAction = 'drowsiness';
           if (previousUserAction !== currentUserAction) {
+            userActionTimer(startTime, currentUserAction);
             userActions['userAction'][currentUserAction]['count'] += 1;
             previousUserAction = currentUserAction;
           }
@@ -121,6 +128,7 @@ async function smartPhoneDetection (network, image) {
         if (!rightFingerDetection) {
             currentUserAction = 'drowsiness';
             if (previousUserAction !== currentUserAction) {
+                userActionTimer(startTime, currentUserAction);
                 userActions['userAction'][currentUserAction]['count'] += 1;
                 previousUserAction = currentUserAction;
             }
@@ -131,4 +139,11 @@ async function smartPhoneDetection (network, image) {
     }
   }
 
-  export {smartPhoneDetection, handDetection, drowsinessDetection}; 
+  function userActionTimer(startTime, currentUserAction) {
+    const endTime = Date.now();
+    const Time = endTime - startTime;
+    userActions['userAction'][currentUserAction]['time'] += Math.round(Time / 1000);
+    startTime = Date.now();
+  }
+
+  export {smartPhoneDetection, handDetection}; 
