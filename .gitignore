@@ -1,0 +1,6 @@
+.idea
+venv
+wandb
+models
+pretrained-models
+checkpoint
