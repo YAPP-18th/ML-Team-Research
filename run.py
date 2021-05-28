@@ -140,8 +140,6 @@ def main(argv):
         'OpenImages': join(FLAGS.data_dir, 'openimages_validation.tfrecords')
     }
     train_steps = data_lib.get_train_steps(['COCO', 'OpenImages'], FLAGS.train_batch_size, drop_remainder=True)
-    print(train_steps)
-    train_steps = 1
 
     # Metrics
     total_loss_metrics = tf.keras.metrics.Mean('train/total_loss')
